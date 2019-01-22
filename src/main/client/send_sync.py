@@ -1,13 +1,18 @@
 #!python3
 
+import multiprocessing
 import datetime
 import logging
+import time
+
 from ping import Ping
 from beacon import Beacon
 
 
-class SendSyncStrategy:
-  def __init__(self, server, chronoId):
+class SendSyncStrategy(multiprocessing.Process):
+  def __init__(self, server, chronoId, workQueue):
+    super(SendSyncStrategy, self).__init__()  # super() will call Thread.__init__ for you
+    self.workQueue = workQueue
     self.server = server
     self.chronoId = chronoId
     self.failures = []
@@ -16,10 +21,19 @@ class SendSyncStrategy:
     self.lastSend = datetime.datetime.now().timestamp()
     self.waitBeforeRetry = 10
 
+  def run(self):
+    while True:
+      if not self.workQueue.empty():
+        self.send(self.workQueue.get())
+        time.sleep(1)
+
   def send(self, sendme):
     try:
+      self.logger.info('[SYNC] Before')
       if sendme is not None:
+        self.logger.info('[SYNC] In')
         self.sendone(sendme)
+        self.logger.info('[SYNC] Out')
       if self.failures and (self.lastSend + self.waitBeforeRetry < datetime.datetime.now().timestamp()):
         # Let's recover
         finallySent = []

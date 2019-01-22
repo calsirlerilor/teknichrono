@@ -17,7 +17,7 @@ export PING_SELECTION_STRATEGY="HIGH"
 export PING_SEND_STRATEGY="SYNC"
 # Minimum duration between the last ping to consider it is a new ping 
 export INACTIVITY_WINDOW="5"
-export TEKNICHRONO_BT_DEBUG='false'
+export TEKNICHRONO_BT_DEBUG='true'
 export TEKNICHRONO_DEBUG='true'
 
 sudo -E python3 $DIR/trd.py

@@ -5,6 +5,7 @@
 import logging
 import os
 import socket
+from multiprocessing import Queue
 from bluetooth_scanner import BluetoothScanner
 from select_first import SelectFirstStrategy
 from select_last import SelectLastStrategy
@@ -60,8 +61,8 @@ def getSelectionStrategy(key):
   return switcher.get(key)
 
 
-def getSendStrategy(key, chronoId):
-  switcher = {'NONE': SendNoneStrategy(), 'SYNC': SendSyncStrategy(TEKNICHRONO_SERVER, chronoId)}
+def getSendStrategy(key, chronoId, workQueue):
+  switcher = {'NONE': SendNoneStrategy(), 'SYNC': SendSyncStrategy(TEKNICHRONO_SERVER, chronoId, workQueue)}
   # Get the function from switcher dictionary
   return switcher.get(key)
 
@@ -88,9 +89,13 @@ scanner.init()
 chrono = Chronometer(CHRONO_NAME, TEKNICHRONO_SERVER)
 logger.info('Using Chronometer ID=' + str(chrono.id))
 selectionStrategy = getSelectionStrategy(PING_SELECTION_STRATEGY)
-sendStrategy = getSendStrategy(PING_SEND_STRATEGY, chrono.id)
+work_q = Queue()
+sendStrategy = getSendStrategy(PING_SEND_STRATEGY, chrono.id, work_q)
+sendStrategy.start()
 
 while True:
   current = scanner.scan()
   toSend = selectionStrategy.select(current)
-  sendStrategy.send(toSend)
+  work_q.put(toSend)
+
+sendStrategy.join()
